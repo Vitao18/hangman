@@ -9,10 +9,14 @@ import System.Random (randomRIO)
 
 type WordList = [String]
 
-data Puzzle = Puzzle String [Maybe Char] [Char]
+data Puzzle = Puzzle
+  { wordToGuess :: String
+  , filledInSoFar :: [Maybe Char]
+  , guessed :: [Char]
+  }
 
 instance Show Puzzle where
-    show (Puzzle _ discovered guessed) = 
+    show (Puzzle {filledInSoFar=discovered, guessed=guessed}) = 
         (intersperse ' ' $ fmap renderPuzzleChar discovered)
         ++ " Guessed so far: " ++ guessed
 
@@ -21,8 +25,14 @@ renderPuzzleChar Nothing = '_'
 renderPuzzleChar (Just c) = c
 
 fillInCharacter :: Puzzle -> Char -> Puzzle
-fillInCharacter (Puzzle word filledInSoFar s) c = 
-    Puzzle word newFilledInSoFar (c:s)
+fillInCharacter puzzle@(Puzzle
+                 { wordToGuess=word
+                 , filledInSoFar=filledInSoFar
+                 , guessed=s
+                 }) c = puzzle
+                        { filledInSoFar=newFilledInSoFar
+                        , guessed=c:s
+                        }
     where
         zipper guessed wordChar guessChar =
             if wordChar == guessed then Just wordChar else guessChar
@@ -33,10 +43,10 @@ freshPuzzle :: String -> Puzzle
 freshPuzzle word = Puzzle word (map (const Nothing) word) []
 
 charInWord :: Puzzle -> Char -> Bool
-charInWord (Puzzle word _ _) x = elem x word
+charInWord (Puzzle {wordToGuess=word}) x = elem x word
 
 alreadyGuessed :: Puzzle -> Char -> Bool
-alreadyGuessed (Puzzle _ _ guessed) x = elem x guessed
+alreadyGuessed (Puzzle {guessed=guessed}) x = elem x guessed
 
 allWords :: IO WordList
 allWords = do
@@ -75,7 +85,7 @@ handleGuess puzzle guess = do
         return (fillInCharacter puzzle guess)
 
 gameOver :: Puzzle -> IO ()
-gameOver (Puzzle wordToguess _ guessed) =
+gameOver (Puzzle {wordToGuess=wordToguess, guessed=guessed}) =
     if (length guessed) > 5 then 
         do
             putStrLn "You lose!"
@@ -84,7 +94,7 @@ gameOver (Puzzle wordToguess _ guessed) =
     else return ()
 
 gameWin :: Puzzle -> IO ()
-gameWin (Puzzle _ filledInSoFar _) =
+gameWin (Puzzle {filledInSoFar=filledInSoFar}) =
     if all isJust filledInSoFar then
         do
             putStrLn "You win!"
