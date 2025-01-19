@@ -3,7 +3,7 @@ module Main where
 import Control.Monad (forever)
 import Data.Char (toLower)
 import Data.Maybe (isJust)
-import Data.List (intersperse)
+import Data.List (intersperse, intercalate)
 import System.Exit (exitSuccess)
 import System.Random (randomRIO)
 
@@ -17,9 +17,9 @@ data Puzzle = Puzzle
   }
 
 instance Show Puzzle where
-    show (Puzzle {filledInSoFar=discovered, guessed=guessed}) = 
+    show (Puzzle {filledInSoFar=discovered, guessed=guessed, missed=missed}) =
         (intersperse ' ' $ fmap renderPuzzleChar discovered)
-        ++ " Guessed so far: " ++ guessed
+        ++ " Guessed so far: " ++ guessed ++ "\n" ++ (hangmanAscii missed) ++ "\n"
 
 renderPuzzleChar :: Maybe Char -> Char
 renderPuzzleChar Nothing = '_'
@@ -73,6 +73,74 @@ gameWords = do
     return (filter gameLength aw)
     where gameLength w = ((length w) > minWordLength) && ((length w) < maxWordLength)
 
+hangmanAscii :: Int -> String
+hangmanAscii = (!!) asciiArt
+  where asciiArt = map (intercalate "\n") $
+          [
+            [ "   _______  "
+            , "   | /   |  "
+            , "   |/       "
+            , "   |        "
+            , "   |        "
+            , "   |        "
+            , "___|___     "
+            ]
+
+          , [ "   _______  "
+            , "   | /   |  "
+            , "   |/    O  "
+            , "   |        "
+            , "   |        "
+            , "   |        "
+            , "___|___     "
+            ]
+
+          , [ "   _______  "
+            , "   | /   |  "
+            , "   |/    O  "
+            , "   |     |  "
+            , "   |     |  "
+            , "   |        "
+            , "___|___     "
+            ]
+
+          , [ "   _______  "
+            , "   | /   |  "
+            , "   |/    O  "
+            , "   |    \\|  "
+            , "   |     |  "
+            , "   |        "
+            , "___|___     "
+            ]
+
+          , [ "   _______  "
+            , "   | /   |  "
+            , "   |/    O  "
+            , "   |    \\|/ "
+            , "   |     |  "
+            , "   |        "
+            , "___|___     "
+            ]
+
+          , [ "   _______  "
+            , "   | /   |  "
+            , "   |/    O  "
+            , "   |    \\|/ "
+            , "   |     |  "
+            , "   |    /   "
+            , "___|___     "
+            ]
+
+          , [ "   _______  "
+            , "   | /   |  "
+            , "   |/    O  "
+            , "   |    \\|/ "
+            , "   |     |  "
+            , "   |    / \\"
+            , "___|___     "
+            ]
+          ]
+
 randomWord :: WordList -> IO String
 randomWord wl = do
     index <- randomRIO (0, (length wl) - 1)
@@ -98,10 +166,11 @@ gameOver (Puzzle
           , guessed=guessed
           , missed=missed
           }) =
-    if missed > 5 then 
+    if missed > 5 then
         do
+            putStrLn . hangmanAscii $ missed
             putStrLn "You lose!"
-            putStrLn $ "The word was: " ++ wordToguess    
+            putStrLn $ "The word was: " ++ wordToguess
             exitSuccess
     else return ()
 
