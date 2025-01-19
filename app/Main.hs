@@ -13,6 +13,7 @@ data Puzzle = Puzzle
   { wordToGuess :: String
   , filledInSoFar :: [Maybe Char]
   , guessed :: [Char]
+  , missed :: Int
   }
 
 instance Show Puzzle where
@@ -39,8 +40,15 @@ fillInCharacter puzzle@(Puzzle
         newFilledInSoFar =
             zipWith (zipper c) word filledInSoFar
 
+fillCorrect :: Puzzle -> Char -> Puzzle
+fillCorrect = fillInCharacter
+
+fillIncorrect :: Puzzle -> Char -> Puzzle
+fillIncorrect puzzle@(Puzzle {missed = missed}) = fillInCharacter newPuzzle
+  where newPuzzle = puzzle {missed=missed + 1}
+
 freshPuzzle :: String -> Puzzle
-freshPuzzle word = Puzzle word (map (const Nothing) word) []
+freshPuzzle word = Puzzle word (map (const Nothing) word) [] 0
 
 charInWord :: Puzzle -> Char -> Bool
 charInWord (Puzzle {wordToGuess=word}) x = elem x word
@@ -79,14 +87,18 @@ handleGuess puzzle guess = do
         return puzzle
       (True, _) -> do
         putStrLn "This character was in the word, filling in the word accordingly."
-        return (fillInCharacter puzzle guess)
+        return . fillCorrect puzzle $ guess
       (False, _) -> do
         putStrLn "This character wasn't in the word, try again."
-        return (fillInCharacter puzzle guess)
+        return . fillIncorrect puzzle $ guess
 
 gameOver :: Puzzle -> IO ()
-gameOver (Puzzle {wordToGuess=wordToguess, guessed=guessed}) =
-    if (length guessed) > 5 then 
+gameOver (Puzzle
+          { wordToGuess=wordToguess
+          , guessed=guessed
+          , missed=missed
+          }) =
+    if missed > 5 then 
         do
             putStrLn "You lose!"
             putStrLn $ "The word was: " ++ wordToguess    
